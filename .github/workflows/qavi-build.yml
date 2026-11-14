@@ -97,15 +97,21 @@ jobs:
       - name: Commit the renamed source back to main
         run: |
           set -euo pipefail
-          # Overlay the renamed tree onto this checkout as a normal commit.
-          # .github is excluded (the Actions token may not create or update
-          # workflow files) and rename.sh is excluded so the sync tool
-          # survives on main. Gradle is stopped first and build/ dirs are
-          # excluded: the test step leaves a warm daemon that deletes
-          # intermediates mid-copy (rsync code 24 killed run 3's commit).
+          # Land the renamed tree on main as a normal commit. The tree is
+          # staged OUTSIDE the checkout first (the checkout root also holds
+          # the src/ build tree; a naive overlay + git add -A committed
+          # 21,731 files incl. the 134MB built APK and GitHub rejected the
+          # push). .github and rename.sh are preserved from the checkout:
+          # the Actions token may not create or update workflow files, and
+          # rename.sh is the upstream-sync tool.
           (cd src && ./gradlew --stop) || true
           sleep 2
-          rsync -a --delete --exclude='.git' --exclude='.github' --exclude='rename.sh' --exclude='build/' src/ ./ || [ $? -eq 24 ]
+          stage="$(mktemp -d)"
+          rsync -a --exclude='.github' --exclude='build/' src/ "$stage/" || [ $? -eq 24 ]
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github ! -name rename.sh -exec rm -rf {} +
+          rsync -a "$stage/" ./
+          big="$(find . -path ./.git -prune -o -type f -size +95M -print)"
+          [ -z "$big" ] || { echo "oversized files staged: $big"; exit 1; }
           git config user.name "qavi-bootstrap"
           git config user.email "actions@github.com"
           git add -A
