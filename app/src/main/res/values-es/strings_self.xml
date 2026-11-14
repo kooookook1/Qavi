@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_self_operate">Permitir que Qavi use sus propias pantallas</string>
+    <string name="settings_self_operate_sub">Abrir las páginas y archivos de Qavi; pregunta antes de abrir un enlace en tu navegador</string>
+    <string name="settings_pip_operate">Operar la vista pequeña directamente</string>
+    <string name="settings_pip_operate_sub">Toca y desliza en la ventana pequeña para controlar la pantalla</string>
+    <string name="settings_external_schedule">Permitir que los scripts creen tareas programadas</string>
+    <string name="settings_external_schedule_sub">Acepta tareas de otras apps por broadcast; como máximo unas pocas por minuto, marcadas como creadas por script</string>
+    <string name="self_notify_channel">Acciones de Qavi</string>
+    <string name="self_notify_channel_desc">Lo que Qavi abre o te pide ver</string>
+    <string name="self_notify_open">Ver</string>
+    <string name="self_screen_notice">Qavi quiere mostrarte %1$s</string>
+    <string name="self_file_notice">Qavi tiene un archivo para mostrarte</string>
+    <string name="self_file_failed">No se pudo abrir ese archivo</string>
+    <string name="self_consent_open">Qavi quiere abrir esta página en tu navegador. ¿Permitirlo?\n%1$s</string>
+    <string name="self_consent_search">Qavi quiere buscar «%1$s» en tu navegador. ¿Permitirlo?</string>
+    <string name="self_consent_login">Qavi quiere abrir %1$s para que inicies sesión. ¿Permitirlo?</string>
+    <string name="self_consent_replace">Esto reemplazará la página que tienes abierta.</string>
+    <string name="self_consent_allow">Abrir</string>
+    <string name="self_consent_deny">No abrir</string>
+    <string name="self_browser_notice">Toca para abrir %1$s en tu navegador</string>
+    <string name="self_browser_failed">No se pudo abrir esa página</string>
+</resources>
