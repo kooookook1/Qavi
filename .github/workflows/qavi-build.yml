@@ -100,8 +100,12 @@ jobs:
           # Overlay the renamed tree onto this checkout as a normal commit.
           # .github is excluded (the Actions token may not create or update
           # workflow files) and rename.sh is excluded so the sync tool
-          # survives on main.
-          rsync -a --delete --exclude='.git' --exclude='.github' --exclude='rename.sh' src/ ./
+          # survives on main. Gradle is stopped first and build/ dirs are
+          # excluded: the test step leaves a warm daemon that deletes
+          # intermediates mid-copy (rsync code 24 killed run 3's commit).
+          (cd src && ./gradlew --stop) || true
+          sleep 2
+          rsync -a --delete --exclude='.git' --exclude='.github' --exclude='rename.sh' --exclude='build/' src/ ./ || [ $? -eq 24 ]
           git config user.name "qavi-bootstrap"
           git config user.email "actions@github.com"
           git add -A
