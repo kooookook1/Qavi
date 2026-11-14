@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # rename.sh — deterministic, re-runnable mechanical rebrand: Mika -> Qavi
 # Operates on the sibling src/ tree (pristine extract of Mika v0.1.42).
+# Package root is co.qavi, NOT app.qavi: the codebase has 108 locals named
+# `app`; a package root `app` is shadowed by them in fully-qualified
+# references (app.qavi.X reads as property access) and breaks compilation
+# (proven by CI run 1, 2026-11-14: 24x Unresolved reference 'qavi').
 # Rename ONLY: no logic changes. Excluded from all edits: files named
 # LICENSE or NOTICE (any depth), the licenses/ directory, and any path
 # mentioning "proot" (a different upstream project; binaries untouched).
@@ -32,7 +36,7 @@ apply() { # $1=listfile $2=sed-expr
     [ -f "$f" ] && sed -i "$2" "$f"
   done < "$1"
 }
-apply /tmp/qavi-list-a.txt 's/com\.wangzan101\.mika/app.qavi/g'
+apply /tmp/qavi-list-a.txt 's/com\.wangzan101\.mika/co.qavi/g'
 apply /tmp/qavi-list-b.txt 's/Mika/Qavi/g'
 apply /tmp/qavi-list-c.txt 's/MIKA/QAVI/g'
 apply /tmp/qavi-list-d.txt 's/mika/qavi/g'
@@ -58,21 +62,21 @@ while IFS= read -r -d '' p; do
 done < <(find . -depth ! -path './licenses/*' \( -name '*mika*' -o -name '*Mika*' -o -name '*MIKA*' \) -print0)
 echo "files/dirs renamed: $renamed"
 
-echo "== Step 4: package dirs com/wangzan101/qavi -> app/qavi =="
+echo "== Step 4: package dirs com/wangzan101/qavi -> co/qavi =="
 moved=0
 # Collect first (paths change as we move them).
 mapfile -t pkgdirs < <(find . -type d -path '*/com/wangzan101/qavi')
 for d in "${pkgdirs[@]}"; do
   root="${d%/com/wangzan101/qavi}"
-  mkdir -p "$root/app"
-  if [ -e "$root/app/qavi" ]; then
+  mkdir -p "$root/co"
+  if [ -e "$root/co/qavi" ]; then
     # Merge (should not happen in this tree, but keep re-runs safe).
-    cp -a "$d/." "$root/app/qavi/" && rm -rf "$d"
+    cp -a "$d/." "$root/co/qavi/" && rm -rf "$d"
   else
-    mv "$d" "$root/app/qavi"
+    mv "$d" "$root/co/qavi"
   fi
   moved=$((moved+1))
-  echo "  moved: $d -> $root/app/qavi"
+  echo "  moved: $d -> $root/co/qavi"
   rmdir "$root/com/wangzan101" "$root/com" 2>/dev/null || true
 done
 echo "package dirs moved: $moved"
@@ -82,14 +86,14 @@ echo "remaining com/wangzan101 path entries: $left"
 echo "== Step 5: updater GitHub URLs -> placeholder qavi-app/qavi =="
 # After steps 2-4 the old 'wangzan101/Mika' strings read 'wangzan101/Qavi'.
 for f in \
-  app/src/main/java/app/qavi/about/QaviLinks.kt \
-  app/src/test/java/app/qavi/about/QaviLinksTest.kt ; do
+  app/src/main/java/co/qavi/about/QaviLinks.kt \
+  app/src/test/java/co/qavi/about/QaviLinksTest.kt ; do
   if [ -f "$f" ]; then
     sed -i 's|wangzan101/Qavi|qavi-app/qavi|g' "$f"
     echo "  placeholder applied: $f"
   fi
 done
-links="app/src/main/java/app/qavi/about/QaviLinks.kt"
+links="app/src/main/java/co/qavi/about/QaviLinks.kt"
 if [ -f "$links" ] && ! grep -q 'TODO(qavi)' "$links"; then
   sed -i '/const val REPO =/i\    // TODO(qavi): point at the real release repo before release' "$links"
   echo "  TODO comment added above REPO in $links"
@@ -103,46 +107,46 @@ echo "== Step 5b: remaining com/wangzan101 path segments (step-4 mandate) =="
 # in strings_chat.xml / ChatCopyTest, which are NOT in this list).
 pathfix_files="
 app/src/main/baseline-prof.txt
-app/src/test/java/app/qavi/ManifestProvidersTest.kt
-core/src/test/kotlin/app/qavi/core/action/SingleEntryTest.kt
-core/src/test/kotlin/app/qavi/core/capability/PackageDependencyTest.kt
-core/src/testFixtures/kotlin/app/qavi/core/docs/ReadmeSections.kt
+app/src/test/java/co/qavi/ManifestProvidersTest.kt
+core/src/test/kotlin/co/qavi/core/action/SingleEntryTest.kt
+core/src/test/kotlin/co/qavi/core/capability/PackageDependencyTest.kt
+core/src/testFixtures/kotlin/co/qavi/core/docs/ReadmeSections.kt
 docs/dev/architecture.md
 docs/dev/chatgpt-signin-check.md
 openspec/changes/fix-589-pip-sound-toggle/proposal.md
 tools/sandbox/README.md
 "
 for f in $pathfix_files; do
-  [ -f "$f" ] && sed -i 's|com/wangzan101/qavi|app/qavi|g' "$f" && echo "  path segments fixed: $f"
+  [ -f "$f" ] && sed -i 's|com/wangzan101/qavi|co/qavi|g' "$f" && echo "  path segments fixed: $f"
 done
 # Regex-escaped package forms (raw-string literals; file bytes hold the
 # single-backslash form com\.wangzan101\.qavi). Done in python: sed
 # escaping for this is error-prone.
 for f in \
-  core/src/test/kotlin/app/qavi/core/capability/PackageDependencyTest.kt \
-  core/src/test/kotlin/app/qavi/core/DocsConsistencyTest.kt ; do
+  core/src/test/kotlin/co/qavi/core/capability/PackageDependencyTest.kt \
+  core/src/test/kotlin/co/qavi/core/DocsConsistencyTest.kt ; do
   if [ -f "$f" ]; then
     python3 - "$f" <<'PYEOF'
 import sys
 p = sys.argv[1]
 s = open(p, encoding='utf-8').read()
-s = s.replace(r'com\.wangzan101\.qavi', r'app\.qavi')
+s = s.replace(r'com\.wangzan101\.qavi', r'co\.qavi')
 open(p, 'w', encoding='utf-8').write(s)
 PYEOF
     echo "  regex package fixed: $f"
   fi
 done
-# Own-package guard in a device test: prefix is now app.qavi.
-f="app/src/androidTest/java/app/qavi/cap/phone/a11y/SystemPickersTest.kt"
-[ -f "$f" ] && sed -i 's|com\.wangzan101|app.qavi|g' "$f" && echo "  own-package prefix fixed: $f"
+# Own-package guard in a device test: prefix is now co.qavi.
+f="app/src/androidTest/java/co/qavi/cap/phone/a11y/SystemPickersTest.kt"
+[ -f "$f" ] && sed -i 's|com\.wangzan101|co.qavi|g' "$f" && echo "  own-package prefix fixed: $f"
 # Nonexistent-app fixture: keep it nonexistent, under the new namespace.
-f="app/src/androidTest/java/app/qavi/cap/phone/shell/ShellParityDeviceTest.kt"
-[ -f "$f" ] && sed -i 's|com\.wangzan101\.no\.such\.app|app.qavi.no.such.app|g' "$f" && echo "  fixture package fixed: $f"
+f="app/src/androidTest/java/co/qavi/cap/phone/shell/ShellParityDeviceTest.kt"
+[ -f "$f" ] && sed -i 's|com\.wangzan101\.no\.such\.app|co.qavi.no.such.app|g' "$f" && echo "  fixture package fixed: $f"
 # Segment-form path in the sandbox runtime builder (os.path.join parts).
 f="tools/sandbox/build-runtime.py"
-[ -f "$f" ] && sed -i 's|"com", "wangzan101", "qavi"|"app", "qavi"|g' "$f" && echo "  segment path fixed: $f"
+[ -f "$f" ] && sed -i 's|"com", "wangzan101", "qavi"|"co", "qavi"|g' "$f" && echo "  segment path fixed: $f"
 # ApkIntegrityTest samples encode the updater's official repo: follow step 5.
-f="app/src/test/java/app/qavi/about/ApkIntegrityTest.kt"
+f="app/src/test/java/co/qavi/about/ApkIntegrityTest.kt"
 [ -f "$f" ] && sed -i 's|wangzan101/Qavi|qavi-app/qavi|g' "$f" && echo "  updater test samples fixed: $f"
 
 echo "== README attribution (idempotent: drop prior line, append fresh) =="
