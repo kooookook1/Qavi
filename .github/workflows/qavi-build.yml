@@ -2,8 +2,9 @@ name: Qavi Build (bootstrap)
 
 # One-shot bootstrap: fetch the pristine Mika v0.1.42 source, rename it to
 # Qavi with rename.sh, build the debug APK, publish it as a prerelease, and
-# commit the renamed source back to main (which removes this workflow and
-# leaves the renamed tree's own qavi-apk.yml in charge).
+# commit the renamed source back to main as an overlay commit. The overlay
+# never touches .github (the Actions token may not push workflow files);
+# the standing qavi-apk.yml workflow is installed separately afterwards.
 
 on:
   workflow_dispatch:
@@ -85,25 +86,24 @@ jobs:
           tag="qavi-test-${GITHUB_SHA::7}"
           gh release create "$tag" dist/Qavi.apk dist/SHA256SUMS.txt \
             --title "Qavi test build (${tag})" \
-            --notes "Automated bootstrap build: Mika v0.1.42 fully renamed to Qavi (package app.qavi). Debug APK for on-device testing." \
+            --notes "Automated bootstrap build: Mika v0.1.42 fully renamed to Qavi (package co.qavi). Debug APK for on-device testing." \
             --prerelease
 
-      - name: Commit the renamed source back to main
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          work="$(mktemp -d)"
-          rsync -a --exclude='.git' src/ "$work/tree/"
-          cd "$work/tree"
-          git init -b main
-          git config user.name "qavi-bootstrap"
-          git config user.email "actions@github.com"
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git add -A
-          git commit -m "Qavi: full rename of Mika v0.1.42 (bootstrap build)"
-          git push --force origin main
-
       - name: Unit tests (informational, after the APK is published)
+        continue-on-error: true
         working-directory: src
         run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Commit the renamed source back to main
+        run: |
+          set -euo pipefail
+          # Overlay the renamed tree onto this checkout as a normal commit.
+          # .github is excluded (the Actions token may not create or update
+          # workflow files) and rename.sh is excluded so the sync tool
+          # survives on main.
+          rsync -a --delete --exclude='.git' --exclude='.github' --exclude='rename.sh' src/ ./
+          git config user.name "qavi-bootstrap"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Qavi: full rename of Mika v0.1.42 (bootstrap build)" || { echo "nothing to commit"; exit 0; }
+          git push origin HEAD:main
